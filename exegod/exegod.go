@@ -12,11 +12,12 @@ import (
   "io/ioutil"
   "log"
   "github.com/jmcarbo/exego"
+  "crypto/tls"
+  "github.com/spf13/viper"
 )
 
 const (
   EXEGOD_VERSION = "0.2.0"
-  EXEGOD_BIND    = "0.0.0.0:20000"
 
   ERR_UNAUTHORIZED = 401
 )
@@ -125,17 +126,19 @@ func EnvVarDefined(name string) bool {
 }
 
 func main() {
-  if !EnvVarDefined("EXEGOD_TOKEN") {
-    fmt.Println("EXEGOD_TOKEN environment variable required")
-    os.Exit(1)
-  }
+  viper.SetConfigName("config") // name of config file (without extension)
+  viper.AddConfigPath("/etc/exego/")   // path to look for the config file in
+  viper.AddConfigPath("$HOME/.exego")  // call multiple times to add many search paths
+  viper.AddConfigPath("./")
+  viper.ReadInConfig() // Find and read the config file
 
-  authToken = os.Getenv("EXEGOD_TOKEN")
-  bindAddr := EXEGOD_BIND
+  viper.SetDefault("CAcert", "myCA.cer")
+  viper.SetDefault("AuthToken", "blabla")
+  viper.SetDefault("Addr", "localhost:20000")
 
-  if EnvVarDefined("EXEGOD_BIND") {
-    bindAddr = os.Getenv("EXEGOD_BIND")
-  }
+  authToken = viper.GetString("AuthToken")
+  bindAddr := viper.GetString("Addr")
+
 
   log.Printf("Exegod v%s\n", EXEGOD_VERSION)
   fmt.Printf("Starting server on %s\n", bindAddr)
@@ -150,5 +153,12 @@ func main() {
   //  return
   //}
 
-  http.ListenAndServeTLS(bindAddr, exego.Asset("certs/mycert1.cer"), exego.Asset("certs/mycert1.key"), nil)
+  //http.ListenAndServeTLS(bindAddr, exego.Asset("certs/mycert1.cer"), exego.Asset("certs/mycert1.key"), nil)
+  cer,_ := exego.Asset("certs/mycert1.cer")
+  key,_ := exego.Asset("certs/mycert1.key")
+  cert, _ := tls.X509KeyPair(cer, key)
+  config := tls.Config{Certificates: []tls.Certificate{cert}}
+  listener, _ := tls.Listen("tcp", bindAddr, &config)
+  server := &http.Server{Addr: bindAddr, Handler: nil}
+  server.Serve(listener)
 }
