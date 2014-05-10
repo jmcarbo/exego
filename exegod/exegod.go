@@ -11,6 +11,7 @@ import (
   "net/http"
   "io/ioutil"
   "log"
+  "github.com/jmcarbo/exego"
 )
 
 const (
@@ -136,18 +137,18 @@ func main() {
     bindAddr = os.Getenv("EXEGOD_BIND")
   }
 
-  fmt.Printf("Exegod v%s\n", EXEGOD_VERSION)
+  log.Printf("Exegod v%s\n", EXEGOD_VERSION)
   fmt.Printf("Starting server on %s\n", bindAddr)
 
   http.HandleFunc("/run", HandleShellRequest)
 
-  _, cerr := os.Open("mycert1.cer")
-  _, kerr := os.Open("mycert1.key")
+  //_, cerr := os.Open()
+  //_, kerr := os.Open(exego.A"mycert1.key")
 
-  if os.IsNotExist(cerr) || os.IsNotExist(kerr) {
-    log.Fatalln(cerr, kerr)
-    return
-  }
+  //if os.IsNotExist(cerr) || os.IsNotExist(kerr) {
+  //  log.Fatalln(cerr, kerr)
+  //  return
+  //}
 
-  http.ListenAndServeTLS(bindAddr, "mycert1.cer", "mycert1.key", nil)
+  http.ListenAndServeTLS(bindAddr, exego.Asset("certs/mycert1.cer"), exego.Asset("certs/mycert1.key"), nil)
 }
